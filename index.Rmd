@@ -1,0 +1,1059 @@
+---
+title: "Reporte Gerencial de Ventas"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    logo: "logo_sq.png"
+    css: styles1.css
+date: "Actualizado el `r paste0(format(Sys.time(), '%d %B, %Y'), ' a las ', format(Sys.time(), '%H:%M'))`"
+---
+
+```{r}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+```{r RGV, include = FALSE}
+rm(list = ls())
+#setwd('/Users/baldecash/My Drive/BaldeCash/Producto/Bases de datos')
+setwd('G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Producto/Bases de datos')
+current_date <- Sys.Date()
+source('Cargar_datos.R')
+
+solicitudes$Categoria.RGV <- ifelse(!(solicitudes$Source %in% c('solicitud','rrss')),"Convenios",ifelse(solicitudes$Redes=="SÍ","Redes","Organico"))
+creditos$Categoria.RGV <- solicitudes$Categoria.RGV[match(creditos$Solicitud,solicitudes$Id)]
+solicitudes_analisis <-solicitudes[solicitudes$Fecha>='2022-01-01',]
+solicitudes_analisis$Id <- as.numeric(solicitudes_analisis$Id)
+
+creditos$Firmado <- !(creditos$Estatus.de.Solicitud[match(creditos$Solicitud,solicitudes_analisis$Id)] %in% c('Cancelado','Falta firmar','Falta pagar inicial',NA))
+solicitudes_analisis$Firmado <- creditos$Firmado[match(solicitudes_analisis$Id,creditos$Solicitud)]
+solicitudes_analisis$FechaAprobacion <- as.Date(solicitudes_analisis$FechaAprobacion)
+solicitudes_analisis$FechaFirmaAirtable <- as.Date(solicitudes_analisis$FechaFirmaAirtable)
+
+#leads <- read.csv('/Users/baldecash/My Drive/BaldeCash/Data/Reportes Diarios/Landing Page-General.csv')
+
+leads <- read.csv('G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Data/Reportes Diarios/Landing Page-General.csv') #my wd
+
+datos_flujo$Fecha <- as.Date(datos_flujo$Fecha)
+datos_flujo$Mes <- format(datos_flujo$Fecha,'%Y%m')
+datos_flujo <- datos_flujo[datos_flujo$Fecha>='2022-01-01',]
+datos_flujo$Categoria.RGV <- ifelse(!(datos_flujo$Source %in% c('prestamo','rrss')),'Convenios',
+                                    ifelse(datos_flujo$DNI %in% leads$DNI,'Redes','Organico'))
+
+length.unique <- function(x) {
+  length(unique(x))
+}
+
+### Exportar
+#setwd('/Users/baldecash/Downloads')
+# setwd('C:/Users/user/Downloads/rgv') # my wd
+# 
+# 
+# #Interesados
+# write.xlsx(spread(summaryBy(Id ~ Fecha+Categoria.RGV,datos_flujo,FUN = length,keep.names = T),
+#                   Categoria.RGV,Id),'interesados.xlsx')
+# 
+# #Datos
+# write.xlsx(spread(summaryBy(DNI ~ Fecha+Categoria.RGV,datos_flujo[is.na(datos_flujo$DNI)==F,],FUN = length.unique,keep.names = T),
+#                   Categoria.RGV,DNI),'datos.xlsx')
+# 
+# #Solicitudes
+# write.xlsx(spread(summaryBy(Dni ~ Fecha+Categoria.RGV,solicitudes_analisis,FUN = length.unique,keep.names = T),
+#                   Categoria.RGV,Dni),'solicitudes.xlsx')
+# 
+# #Aprobados
+# write.xlsx(spread(summaryBy(Dni ~ FechaAprobacion+Categoria.RGV,
+#                             solicitudes_analisis[solicitudes_analisis$Estado=='aprobado',],
+#                             FUN = length.unique,keep.names = T),
+#                   Categoria.RGV,Dni),'aprobados.xlsx')
+# 
+# #Firmas
+# write.xlsx(spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
+#                             creditos[creditos$Fecha.de.Firma>='2022-01-01'&
+#                                     is.na(creditos$Fecha.de.Firma)==F&
+#                                     !(creditos$Estatus.de.Solicitud %in% c('Falta pagar inicial','Cancelado')),],
+#                             FUN = length.unique,keep.names = T),
+#                   Categoria.RGV,DNI),'firmas.xlsx')
+
+```
+
+
+```{r, include=FALSE}
+library(flexdashboard)
+library(openxlsx)
+library(tidyverse)
+library(ggtext)
+library(plotly)
+library(doBy)
+```
+
+```{r, include=FALSE}
+interesados <- spread(summaryBy(Id ~ Fecha+Categoria.RGV,datos_flujo,FUN = length,keep.names = T),
+                   Categoria.RGV,Id)
+
+datos <- spread(summaryBy(DNI ~ Fecha+Categoria.RGV,datos_flujo[is.na(datos_flujo$DNI)==F,],FUN = length.unique,keep.names = T),
+                   Categoria.RGV,DNI) 
+
+solicitudes <- spread(summaryBy(Dni ~ Fecha+Categoria.RGV,solicitudes_analisis,FUN = length.unique,keep.names = T),
+                   Categoria.RGV,Dni)
+
+aprobados <- spread(summaryBy(Dni ~ FechaAprobacion+Categoria.RGV,
+                            solicitudes_analisis[solicitudes_analisis$Estado=='aprobado',],
+                            FUN = length.unique,keep.names = T),
+                  Categoria.RGV,Dni)
+
+
+firmas <- spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
+                            creditos[creditos$Fecha.de.Firma>='2022-01-01'&
+                                    is.na(creditos$Fecha.de.Firma)==F&
+                                    !(creditos$Estatus.de.Solicitud %in% c('Falta pagar inicial','Cancelado')),],
+                            FUN = length.unique,keep.names = T),
+                  Categoria.RGV,DNI)
+```
+
+
+```{r, include=FALSE}
+table(solicitudes[solicitudes$Fecha>='2022-07-01'&
+                    solicitudes$Fecha<='2022-07-31',"Ciclo"])/length(solicitudes[solicitudes$Fecha>='2022-07-01'&
+                                                                                         solicitudes$Fecha<='2022-07-31',"Ciclo"])
+
+
+temporal <- spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
+                             creditos[creditos$Fecha.de.Firma>='2022-01-01'&
+                                creditos$Fecha.de.Firma<='2022-12-31'&
+                                        is.na(creditos$Fecha.de.Firma)==F&
+                                        !(creditos$Estatus.de.Solicitud %in% c('Falta pagar inicial','Cancelado')),],
+                             FUN = length.unique,keep.names = T),
+                   Categoria.RGV,DNI)
+
+sum(temporal$Convenios,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+sum(temporal$Organico,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+sum(temporal$Redes,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+
+
+# write.xlsx(cronogramas[creditos$Estatus.de.Solicitud[match(cronogramas$Contrato,creditos$Solicitud)]=="Entregada",],
+#            "cronogramas.5.7.23.xlsx")
+```
+
+
+
+```{r dates}
+# ver https://peru.workingdays.org/
+# fecha_hoy <- as.Date("2023-12-22")
+fecha_hoy <- Sys.Date() - 1
+inicio_mes_hoy <- as.Date(paste0(year(fecha_hoy),"-", month(fecha_hoy), "-01"))
+dias_totales_mes <- unname(days_in_month(fecha_hoy))
+dias_mtd <- as.integer(fecha_hoy - inicio_mes_hoy)
+
+inicio_current_year <- as.Date(paste0(year(fecha_hoy),"-01-01"))
+fin_current_year <- as.Date(paste0(year(fecha_hoy),"-12-31"))
+```
+
+```{r}
+# Feriados 2023. Fuente: https://elcomercio.pe/respuestas/feriado-largo-por-navidad-2023-para-quienes-aplica-y-que-indica-el-peruano-del-feriado-feriados-2023-en-peru-tdpe-noticia/
+
+feriados_peru <- as.Date(c(
+    "2023-01-01", # Año Nuevo
+    "2023-04-06", # Jueves Santo
+    "2023-04-07", # Viernes Santo
+    "2023-05-01", # Día del Trabajo
+    "2023-06-29", # San Pedro y San Pablo
+    "2023-07-23", # Día de la Fuerza Aérea
+    "2023-07-28", # Fiestas Patrias
+    "2023-07-29", # Fiestas Patrias
+    "2023-08-06", # Batalla de Junín
+    "2023-08-30", # Santa Rosa de Lima
+    "2023-10-08", # Combate de Angamos
+    "2023-11-01", # Todos los Santos
+    "2023-12-08", # Inmaculada Concepción
+    "2023-12-09", # Batalla de Ayacucho
+    "2023-12-25" # Navidad
+))
+
+
+# Feriados 2024. Fuente: https://elcomercio.pe/respuestas/cuanto/feriados-en-el-2024-dias-no-laborables-y-festivos-del-ano-en-el-peru-cuantos-feriados-oficiales-habra-feriados-2024-tdpe-noticia/
+
+# feriados_peru <- as.Date(c(
+#   "2024-01-01", # Año Nuevo
+#   "2024-03-28", # Jueves Santo
+#   "2024-03-29", # Viernes Santo
+#   "2024-05-01", # Día del Trabajo
+#   "2024-06-07", # Batalla de Arica y Día de la Bandera
+#   "2024-06-29", # San Pedro y San Pablo
+#   "2024-07-23", # Día de la Fuerza Aérea
+#   "2024-07-28", # Fiestas Patrias
+#   "2024-07-29", # Fiestas Patrias 
+#   "2024-08-06", # Batalla de Junín 
+#   "2024-08-30", # Santa Rosa de Lima
+#   "2024-10-08", # Combate de Angamos
+#   "2024-11-01", # Día de Todos los Santos
+#   "2024-12-08", # Inmaculada Concepción
+#   "2024-12-09", # Batalla de Ayacucho
+#   "2024-12-25" # Navidad
+# ))
+```
+
+```{r crear calendario}
+# calendario <- seq.Date(
+#     inicio_current_year,
+#     fin_current_year,
+#     "day"
+# )
+
+
+calendario <- seq.Date(
+        as.Date("2018-01-01"), # fechas random, para que abarquen muchos años
+        as.Date("2030-12-31"),
+        "day"
+)
+```
+
+
+```{r}
+# Month To Date: contar la cantidad de dìas laborales este mes hasta hoy
+dias_habiles_mtd <- length(
+  calendario[year(calendario) == year(fecha_hoy) & # dias en este año
+               month(calendario) == month(fecha_hoy) & # dias en este mes
+    lubridate::wday(calendario, week_start = 1) < 6 & # de lunes a viernes
+    calendario < fecha_hoy & # menores a la fecha de hoy (no incluye hoy)
+    !calendario %in% feriados_peru] # no feriados
+    )
+```
+
+
+```{r}
+# End of Month: contar la cantidad de días laborales desde mañana hasta el fin de mes
+dias_habiles_eom <- length(
+  calendario[year(calendario) == year(fecha_hoy) & # dias en este año
+    month(calendario) == month(fecha_hoy) & # dias en este mes
+    lubridate::wday(calendario, week_start = 1) < 6 & # de lunes a viernes
+    calendario > fecha_hoy & # mayores a la fecha de hoy (no incluye hoy)
+    !calendario %in% feriados_peru] # que no sean feriados
+    ) 
+```
+
+
+```{r}
+# contar la cantida de días de L a V de todo el mes que no sean feriados
+dias_habiles_mes <- length(
+  calendario[year(calendario) == year(fecha_hoy) & # dias en este año
+    month(calendario) == month(fecha_hoy) & # dias en este mes
+    lubridate::wday(calendario, week_start = 1) < 6 & # de lunes a viernes
+    !calendario %in% feriados_peru # no incluye feriados
+    ])
+```
+
+
+```{r firmas}
+firmas_resumen <- firmas
+```
+
+```{r}
+# Completar las filas de la columna Fecha de firma para que muestren todos los días del presente mes.
+firmas_resumen <- firmas_resumen %>% 
+  complete(Fecha.de.Firma = seq.Date(
+    min(Fecha.de.Firma), 
+    max(ceiling_date(fecha_hoy, unit = "months")),
+    by = "day"))
+
+firmas_resumen[is.na(firmas_resumen)] <- 0
+
+firmas_resumen <- firmas_resumen %>% 
+  slice(1:nrow(.) - 1) # eliminar la última fila.
+```
+
+```{r}
+meta <- 200
+```
+
+```{r}
+firmas_resumen2 <- firmas_resumen %>%
+  dplyr::select(Fecha.de.Firma, Convenios, Organico, Redes) %>%
+  filter(Fecha.de.Firma >= inicio_mes_hoy) %>% 
+  mutate(
+    firmas = Convenios + Organico + Redes,
+    acumulado = ifelse(Fecha.de.Firma > fecha_hoy, NA, cumsum(firmas)),
+    weekday = lubridate::wday(Fecha.de.Firma, week_start=1),
+    promedio = max(acumulado, na.rm = TRUE) / dias_habiles_mtd, 
+    proyeccion = ifelse(Fecha.de.Firma > fecha_hoy & weekday < 6, promedio, 0),
+    proyeccion_sobre_dias = meta/dias_totales_mes,
+    lineal = ifelse(Fecha.de.Firma == inicio_mes_hoy, meta/dias_totales_mes, cumsum(proyeccion_sobre_dias)), # 2023-12-22 sale 71
+    acumulado_con_proyeccion = 
+      case_when(
+        Fecha.de.Firma < fecha_hoy ~ NA_real_,
+        Fecha.de.Firma == fecha_hoy ~ max(acumulado, na.rm = TRUE)
+      )
+  )
+```
+
+```{r acumulado con proyeccion}
+# Para el acumulado_con_proyeccion del día siguiente a fecha_today
+# firmas_resumen2[firmas_resumen2$Fecha.de.Firma == fecha_hoy + 1,]$acumulado_con_proyeccion <- 
+#   firmas_resumen2[firmas_resumen2$Fecha.de.Firma == fecha_hoy,]$acumulado_con_proyeccion + firmas_resumen2[firmas_resumen2$Fecha.de.Firma == fecha_hoy + 1,]$proyeccion
+
+# Para el acumulado_con_proyeccion del día subsiguiente a fecha_today y lo sucesivo
+for (i in (which(firmas_resumen2$Fecha.de.Firma > fecha_hoy)):(nrow(firmas_resumen2))) {
+  firmas_resumen2$acumulado_con_proyeccion[i] <- 
+    max(firmas_resumen2$acumulado_con_proyeccion, na.rm = TRUE) + firmas_resumen2$proyeccion[i]
+}
+```
+
+```{r metricas, include=FALSE}
+firmas_cifra <- firmas_resumen2 %>%
+  filter(Fecha.de.Firma <= fecha_hoy & Fecha.de.Firma >= inicio_mes_hoy) %>%
+  dplyr::select(firmas) %>% 
+  sum() %>% 
+  unlist()
+firmas_cifra
+```
+
+```{r, include=FALSE}
+proyeccion_lineal_cifra <- max(firmas_resumen2$acumulado_con_proyeccion, na.rm = TRUE)
+proyeccion_lineal_cifra
+```
+
+```{r, include=FALSE}
+colocacion_diaria_cifra <- mean(firmas_resumen2$promedio)
+colocacion_diaria_cifra
+```
+
+```{r, include=FALSE}
+meta_diaria_cifra <- meta / dias_habiles_mes
+meta_diaria_cifra
+```
+
+```{r, include=FALSE}
+# Denominador: contar la cantidad de días luego de fecha_hoy y que son días hábiles
+
+catch_up_diario_cifra <- (meta - firmas_cifra) / dias_habiles_eom
+catch_up_diario_cifra 
+```
+
+```{r solicitudes, include=FALSE}
+solicitudes_resumen <- solicitudes
+
+# Completar las filas de la columna Fecha de firma para que muestren todos los días del presente mes.
+solicitudes_resumen <- solicitudes_resumen %>% 
+  complete(Fecha = seq.Date(
+    min(Fecha), 
+    max(ceiling_date(fecha_hoy, unit = "months")),
+    by = "day"))
+
+solicitudes_resumen[is.na(solicitudes_resumen)] <- 0
+
+solicitudes_resumen <- solicitudes_resumen %>% 
+  slice(1:nrow(.) - 1) # eliminar la última fila. Es necesario?
+
+solicitudes_resumen <- solicitudes_resumen %>%
+  mutate(
+    solicitudes = Convenios + Organico + Redes
+  )
+```
+
+```{r interesados para tráfico de solicitudes}
+interesados_resumen <- interesados
+
+# Completar las filas de la columna Fecha de firma para que muestren todos los días del presente mes.
+interesados_resumen <- interesados_resumen %>% 
+  complete(Fecha = seq.Date(
+    min(Fecha), 
+    max(ceiling_date(fecha_hoy, unit = "months")),
+    by = "day"))
+
+interesados_resumen[is.na(interesados_resumen)] <- 0
+
+interesados_resumen <- interesados_resumen %>% 
+  slice(1:nrow(.) - 1) # eliminar la última fila. Es necesario?
+
+interesados_resumen <- interesados_resumen %>%
+  mutate(
+    interesados = Convenios + Organico + Redes
+  )
+```
+
+```{r datos para gráfico de datos frescos}
+datos_resumen <- datos
+# Completar las filas de la columna Fecha de firma para que muestren todos los días del presente mes.
+datos_resumen <- datos_resumen %>% 
+  complete(Fecha = seq.Date(
+    min(Fecha), 
+    max(ceiling_date(fecha_hoy, unit = "months")),
+    by = "day"))
+
+datos_resumen[is.na(datos_resumen)] <- 0
+
+datos_resumen <- datos_resumen %>% 
+  slice(1:nrow(.) - 1) # eliminar la última fila. Es necesario?
+
+datos_resumen <- datos_resumen %>%
+  mutate(
+    datos = Convenios + Organico + Redes
+  )
+```
+
+
+```{r}
+datos_resumen <- datos_resumen %>%
+  mutate(
+    datos_frescos = ifelse(Fecha > min(Fecha) + 3,
+                            datos + lag(datos, 1) + lag(datos, 2),
+                            NA))
+```
+
+```{r, include=FALSE}
+# completar_fechas <- function(data) {
+#   data_resumen <- data %>%
+#     complete(Fecha = seq.Date(
+#       min(Fecha),
+#       max(ceiling_date(fecha_hoy, unit = "months")),
+#       by = "day"
+#     ))
+# 
+#   data_resumen[is.na(data_resumen)] <- 0
+# 
+#   data_resumen <- data_resumen %>%
+#     slice(1:nrow(.) - 1)
+# 
+#   data_resumen <- data_resumen %>%
+#     mutate(
+#       total = Convenios + Organico + Redes
+#     )
+#   
+#   return(data_resumen)
+# }
+# 
+# solicitudes_resumen <- completar_fechas(solicitudes)
+# interesados_resumen <- completar_fechas(interesados) # interesados para tráfico de solicitudes
+# datos_resumen <- completar_fechas(datos) # para gráfico de datos frescos
+```
+
+```{r tema ggplot baldecash, include=FALSE}
+  # Colors
+color_background <- "white"
+color_text <- "#332d2d"
+
+color_indigo <- "#474fd5" # 
+color_turquesa <- "#00e4d3" # 
+color_verde <- "#8fce00"
+color_amarillo <- "#feca55"
+color_rojo <- "#f44336"
+color_rosado <- "#ff51a7"
+color_marron <- "#834505"
+color_gris <- "#e3e3e3"
+
+theme_balde <- function() {
+
+  # Begin construction of chart
+  theme_bw(base_size = 15) +
+
+    # Format background colors
+    theme(panel.background = element_rect(fill = color_background, color = color_background)) +
+    theme(plot.background = element_rect(fill = color_background, color = color_background)) +
+    theme(panel.border = element_rect(color = color_background)) +
+    theme(strip.background = element_rect(fill = color_background, color = color_background)) +
+
+    # Format the grid
+    theme(axis.ticks = element_blank()) +
+    theme(panel.grid = element_line(colour = color_gris)) +
+    theme(panel.grid.major = element_line(colour = color_gris)) +
+    theme(panel.grid.minor = element_line(colour = color_gris)) +
+
+
+    # Format the legend
+    # theme(legend.position = "top") +
+
+    # Format de caption
+    theme(plot.caption = element_text(hjust = 0.6, vjust= 0.1, size = 5.45)) +
+
+    # Format title and axis labels
+    theme(plot.title = element_blank()) +
+    theme(plot.subtitle = element_markdown(color = color_text, size = 11, hjust = 0.5, face = "bold", margin=margin(0,0,22,0))) +
+    theme(axis.title.x = element_blank()) +
+    theme(axis.title.y = element_blank()) +
+    theme(axis.text = element_markdown()) +
+    theme(axis.text.x = element_markdown(color = color_text, size = 9, hjust = 0.5)) +
+    theme(axis.text.x.top = element_markdown(color = "#3b3b3a", family = "Arial Narrow", size=7.5)) +
+    theme(axis.text.y = element_markdown(color = color_text, size = 9, hjust = 0.5)) +
+    # theme(strip.text = element_text(face = "bold")) +
+    theme(plot.tag = element_markdown(
+      family = "Arial Narrow", 
+      lineheight = 0.1, 
+      size = 8)) +
+    theme(plot.tag.position = c(0.10, 0.85)) +
+
+    # Plot margins
+    theme(plot.margin = unit(c(0.5, 0.4, 0.5, 0.65), "cm")) # top, right, bottom, left
+}
+```
+
+Proyección
+=======================================================================
+
+Column {data-width=250}
+-----------------------------------------------------------------------
+
+### Firmas
+
+```{r}
+firmas_cifra_box <- valueBox(firmas_cifra, 
+                           color = ifelse(firmas_cifra >= meta, color_verde, color_rojo),
+                           icon = "fa-users")
+
+firmas_cifra_box
+```
+
+
+### Proyección lineal
+
+```{r}
+proyeccion_lineal_cifra_box <- valueBox(value = round(proyeccion_lineal_cifra, 2), 
+                           color = ifelse(proyeccion_lineal_cifra >= meta, color_verde, color_rojo),
+                           icon = "fa fa-line-chart")
+
+proyeccion_lineal_cifra_box
+```
+
+
+
+### Meta
+
+
+```{r}
+meta_box <- valueBox(value = meta, 
+                           color = color_rojo,
+                           icon = "fa fa-info-circle")
+
+meta_box
+```
+
+
+### Meta diaria
+
+```{r}
+meta_diaria_box <- valueBox(value = round(meta_diaria_cifra, 2), 
+                           icon = "fa fa-bell")
+
+meta_diaria_box
+```
+
+
+### Colocación diaria
+
+```{r}
+colocacion_diaria_cifra_box <- valueBox(value = round(colocacion_diaria_cifra, 2), 
+                           icon = "fa fa-area-chart")
+
+colocacion_diaria_cifra_box
+```
+
+
+### Catch up diario
+
+```{r}
+catch_up_diario_cifra_box <- valueBox(value = round(catch_up_diario_cifra, 2), 
+                           icon = "fa fa-bar-chart")
+
+catch_up_diario_cifra_box
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+
+### Proyección de firmas del mes {data-width=700}
+
+```{r}
+proyeccion_firmas_plot <- firmas_resumen2 %>%
+  filter(Fecha.de.Firma >= inicio_mes_hoy) %>%
+  ggplot(aes(x = Fecha.de.Firma, y = acumulado), 
+         color = color_indigo) +
+  geom_line(color = color_turquesa) +
+  geom_line(data = firmas_resumen2 %>% filter(Fecha.de.Firma >= fecha_hoy),
+            aes(x = Fecha.de.Firma, 
+                y = acumulado_con_proyeccion),
+            color = color_amarillo,
+            linetype = "dotdash") +
+  geom_line(aes(x = Fecha.de.Firma, 
+                y = round(lineal)), 
+            color = color_indigo) +
+  geom_hline(yintercept = meta, 
+             color = color_rojo,
+             linetype = "longdash") +
+  theme_balde() +
+  scale_x_date(date_breaks = "3 days", 
+               date_labels = "%d")
+
+ggplotly(proyeccion_firmas_plot)
+```
+
+
+Totales
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+### Tráfico de solicitudes {data-width=700}
+
+```{r con data de la tabla interesados}
+trafico_solicitudes_plot <- interesados_resumen %>%
+  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1 ) %>% 
+  ggplot(aes(x = Fecha, y = interesados)) +
+  geom_col(color = color_background, 
+           fill = color_turquesa) +
+  theme_balde() +
+  scale_x_date(date_breaks = "3 days", 
+               date_labels = "%d")
+
+
+ggplotly(trafico_solicitudes_plot)
+```
+
+### Solicitudes totales {data-width=700}
+
+```{r}
+solicitudes_totales_plot <- solicitudes_resumen %>%
+  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1 ) %>% 
+  ggplot(aes(x = Fecha, 
+             y = solicitudes)) +
+  geom_hline(
+    yintercept = meta_diaria_cifra/0.25, # edited 2023-12-26 13:25
+    color = color_rojo,
+    linetype = "longdash"
+  ) +
+  geom_col(color = color_background, 
+           fill = color_turquesa) +
+  theme_balde() +
+  scale_x_date(date_breaks = "3 days", 
+               date_labels = "%d")
+
+
+ggplotly(solicitudes_totales_plot)
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Datos frescos con antigüedad de 3 días {data-width=700}
+
+```{r}
+datos_frescos_plot <- datos_resumen %>%
+  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1) %>% 
+  ggplot(aes(x = Fecha, 
+             y = datos_frescos)
+         ) +
+  geom_col(color = color_background, 
+           fill = color_turquesa) +
+  theme_balde() +
+  scale_x_date(date_breaks = "3 days", 
+               date_labels = "%d")
+
+
+ggplotly(datos_frescos_plot)
+```
+
+
+### Firmas totales {data-width=700}
+
+```{r}
+firmas_totales_plot <- firmas_resumen2 %>%
+  filter(Fecha.de.Firma >= inicio_mes_hoy & Fecha.de.Firma <= fecha_hoy) %>% 
+  ggplot(aes(x = Fecha.de.Firma, y = firmas)) +
+  geom_hline(yintercept = meta_diaria_cifra, 
+             color = color_rojo,
+             linetype = "longdash") +
+  geom_col(color = color_background, 
+           fill = color_turquesa) +
+  theme_balde() +
+  scale_x_date(date_breaks = "3 days", 
+               date_labels = "%d")
+
+
+ggplotly(firmas_totales_plot)
+```
+
+
+
+```{r}
+if(dir.exists("/Volumes/GoogleDrive/My Drive/BaldeCash/Producto/Bases de datos")){
+    folder <-"/Users/baldecash/My Drive/BaldeCash/Desarrollo de Negocio/Ventas/Funnel de conversion"
+}else if(dir.exists("G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Producto/Bases de datos")){
+    folder <-"G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Desarrollo de Negocio/Ventas/Funnel de conversion"
+}
+```
+
+```{r}
+library(fmsb)
+library(gridExtra)
+library(kableExtra)
+library(DT)
+library(knitr)
+library(bsts)
+library(scales)
+library(raster)
+library(htmltools)
+library(reshape2)
+library(data.table)
+library(priceR)
+library(showtext)
+library(readxl)
+library(stats)
+library(rio)
+library(aweek)
+library(mltools)
+Sys.setlocale("LC_TIME", "English")
+
+fecha_analisis <- Sys.Date()
+
+
+colores <- c("#474fd5","#00e4d3","#8fce00","#feca55","#f44336","#332d2d","#ff51a7","#834505",
+          "#474fd5","#00e4d3","#8fce00","#feca55","#f44336","#332d2d","#ff51a7","#834505") #En caso se tengan mas categorias, agregar colores
+
+#azul, celeste, verde, naranja, rojo, negro, rosado, marron
+```
+
+
+```{r}
+if(dir.exists("/Volumes/GoogleDrive/My Drive/BaldeCash/Producto/Bases de datos")){
+    setwd("/Volumes/GoogleDrive/My Drive/BaldeCash/Producto/Bases de datos")
+}else if(dir.exists("G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Producto/Bases de datos")){
+    setwd('G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Producto/Bases de datos')
+}
+```
+
+```{r}
+current_date <- Sys.Date()
+
+library(matrixStats)
+
+### Conversion
+
+resultados.test <- function(test="B",convenio=NA,conversion=T,inicio="2023-03-01",final=Sys.Date()-1,datos=datos_flujo) {
+    
+  datos_flujo_analisis <- datos[is.na(datos$UltimaPaginaCompletada)==F & is.na(datos$ModoInicio)==F,]
+  #datos_flujo_analisis <- datos_flujo_analisis[!(datos_flujo_analisis$DNI %in% dnis_prueba),]
+  datos_flujo_analisis$Fecha_2 <- as.Date(datos_flujo_analisis$Fecha)
+  datos_flujo_analisis <- datos_flujo_analisis[datos_flujo_analisis$ModoInicio==ifelse(test=="B","startedWithPrestamos",
+                                                                                 ifelse(test=="A","startedWithDatosPersonales","")),]
+  
+  if (is.na(convenio)) {
+    
+  } else {
+    datos_flujo_analisis <- datos_flujo_analisis[datos_flujo_analisis$TipoCliente==convenio,]
+  }
+  
+  
+  resultados <- as.data.frame(matrix(NA,nrow = length(as.Date(inicio):as.Date(final)),ncol = 7))
+  
+  if (test=="A") {
+    colnames(resultados) <- c("Fecha","Inicio","Datos","Laptop","Info.academica","Info.pago","Completada")
+    opciones <- c("carga inicial","datos personales","laptop seleccionada","información académica","forma de pago","confirmar solicitud")
+  } else {
+    colnames(resultados) <- c("Fecha","Inicio","Laptop","Datos","Info.academica","Info.pago","Completada")
+    opciones <- c("carga inicial","laptop seleccionada","datos personales","información académica","forma de pago","confirmar solicitud")
+  }
+  
+  resultados$Fecha <- as.Date(as.Date(inicio):as.Date(final))
+  
+  for (i in 1:6) {
+    for (j in 1:nrow(resultados)) {
+      resultados[j,i+1] <- nrow(datos_flujo_analisis[datos_flujo_analisis$UltimaPaginaCompletada==opciones[i]&
+                                                       datos_flujo_analisis$Fecha_2==resultados$Fecha[j],])
+    }
+  }
+  
+  for (i in 2:6) {
+    resultados[,i] <- rowSums(resultados[,i:7])
+  }
+  
+  lista.resultado <- list(nrow(datos_flujo_analisis[datos_flujo_analisis$Fecha_2>=as.Date(inicio)&datos_flujo_analisis$Fecha_2<=as.Date(final),]),
+                          sum(resultados$Completada,na.rm = T),
+                          sum(resultados$Completada,na.rm = T)/sum(resultados[,2],na.rm = T),
+                          sum(resultados$Datos,na.rm = T)/sum(resultados$Completada,na.rm = T),
+                          sum(resultados[,3],na.rm = T)/sum(resultados[,2],na.rm = T),
+                          sum(resultados[,4],na.rm = T)/sum(resultados[,3],na.rm = T),
+                          sum(resultados[,5],na.rm = T)/sum(resultados[,4],na.rm = T),
+                          sum(resultados[,6],na.rm = T)/sum(resultados[,5],na.rm = T),
+                          sum(resultados[,7],na.rm = T)/sum(resultados[,6],na.rm = T),
+                          NA)
+  
+  names(lista.resultado) <- c("Registros","Solicitudes","Conversión.total","Datos.por.solicitud",
+                              "Conversion.1.laptop","Conversion.2.datos","Conversion.3.info.academica",
+                              "Conversion.4.info.financiera","Conversion.5.ultima pagina",
+                              "Tabla.diaria")
+  
+  resultados <- resultados[is.na(resultados[,2])==F,]
+  
+  if (conversion) {
+    for (i in 7:3) {
+      resultados[,i] <- resultados[,i]/resultados[,i-1]
+    }
+    resultados[,2] <- 1
+    resultados$Total <- rowProds(as.matrix(resultados[,2:7]))
+  }
+  
+  
+  for (j in 1:nrow(resultados)) {
+    resultados[j,"Firmas"] <- sum(solicitudes$Estado[match(datos_flujo_analisis[datos_flujo_analisis$UltimaPaginaCompletada==opciones[i]&
+                                                                                  datos_flujo_analisis$Fecha_2==resultados$Fecha[j],"SolicitudId"],solicitudes$Id)]=="aprobado",na.rm = T)
+  }
+  
+  
+  lista.resultado[[10]] <- resultados
+  
+  return(lista.resultado)
+}
+
+
+conversion.semanal <- function(datos=datos_flujo,inicio="2023-03-01",final=Sys.Date()-1) {
+  datos.semanal <- as.data.frame(matrix(NA,nrow=length(seq(as.Date(inicio),final,by="weeks")),
+                                        ncol=10))
+  colnames(datos.semanal) <- c("Fecha","Registros","Solicitudes","Conversion.total","Datos.por.solicitud",
+                               "Conversion.1.laptop","Conversion.2.datos","Conversion.3.info.academica",
+                               "Conversion.4.info.financiera","Conversion.5.ultima.pagina")
+  datos.semanal$Fecha <- seq(as.Date(inicio),final,by="weeks")
+  for (i in 1:nrow(datos.semanal)) {
+    temp <- resultados.test(inicio=as.Date(datos.semanal$Fecha[i]-6),final = as.Date(datos.semanal$Fecha[i]),datos=datos)
+    datos.semanal$Registros[i] <- temp[[1]]
+    datos.semanal$Solicitudes[i] <- temp[[2]]
+    datos.semanal$Conversion.total[i] <- temp[[3]]
+    datos.semanal$Datos.por.solicitud[i] <- temp[[4]]
+    datos.semanal$Conversion.1.laptop[i] <- temp[[5]]
+    datos.semanal$Conversion.2.datos[i] <- temp[[6]]
+    datos.semanal$Conversion.3.info.academica[i] <- temp[[7]]
+    datos.semanal$Conversion.4.info.financiera[i] <- temp[[8]]
+    datos.semanal$Conversion.5.ultima.pagina[i] <- temp[[9]]
+  }
+  
+  return(datos.semanal)
+}
+
+conversion.movil <- function(datos=datos_flujo,inicio="2023-03-01",ventana.movil=7,final=Sys.Date()-1) {
+    
+  datos.movil <- as.data.frame(matrix(NA,nrow=length(seq(as.Date(inicio),final,by="days")),
+                                        ncol=10))
+  
+  colnames(datos.movil) <- c("Fecha","Registros","Solicitudes","Conversion.total","Datos.por.solicitud",
+                               "Conversion.1.laptop","Conversion.2.datos","Conversion.3.info.academica",
+                             "Conversion.4.info.financiera","Conversion.5.ultima.pagina")
+  datos.movil$Fecha <- seq(as.Date(inicio),final,by="days")
+  for (i in 1:nrow(datos.movil)) {
+    temp <- resultados.test(inicio=as.Date(datos.movil$Fecha[i]-ventana.movil+1),
+                            final = as.Date(datos.movil$Fecha[i]),datos=datos)
+    datos.movil$Registros[i] <- temp[[1]]
+    datos.movil$Solicitudes[i] <- temp[[2]]
+    datos.movil$Conversion.total[i] <- temp[[3]]
+    datos.movil$Datos.por.solicitud[i] <- temp[[4]]
+    datos.movil$Conversion.1.laptop[i] <- temp[[5]]
+    datos.movil$Conversion.2.datos[i] <- temp[[6]]
+    datos.movil$Conversion.3.info.academica[i] <- temp[[7]]
+    datos.movil$Conversion.4.info.financiera[i] <- temp[[8]]
+    datos.movil$Conversion.5.ultima.pagina[i] <- temp[[9]]
+  }
+  
+  return(datos.movil)
+}
+
+conversion.plot <- function(datos=datos_flujo,inicio="2023-03-07",id=4,segmentacion=NA,ventana.movil=7,
+                            final=Sys.Date()-1, conversion=T) {
+  
+  datos.semanal <- conversion.movil(datos=datos,inicio=as.Date(inicio),
+                                    ventana.movil=ventana.movil,final = final)
+  
+  return(list(
+    if (is.na(segmentacion)) {
+      ggplot(datos.semanal, aes(x = Fecha, y = .data[[colnames(datos.semanal)[id]]])) + 
+        geom_line(color=ifelse(id==4,colores[1],colores[2]),size = ifelse(id==4,1,0.75)) +
+        scale_y_continuous(limits = c(0,max(datos.semanal[,id])*1.2),
+                           labels = scales::percent)+
+        theme_minimal() + 
+        theme(legend.title = element_blank(), 
+              axis.text = element_text(size = 10))+
+        geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed", 
+                   color = "#f44336", size=.3) +
+        labs(x = "", y = "")
+    } else {
+      options <- unique(datos[,segmentacion])
+      
+      output <- conversion.movil(datos=datos[datos[,match(segmentacion,colnames(datos))]==options[1],],inicio=as.Date(inicio))
+      output$Variable <- options[1]
+      for (i in 2:length(options)) {
+        temp <- conversion.movil(datos=datos[datos[,match(segmentacion,colnames(datos))]==options[i],],inicio=as.Date(inicio))
+        temp$Variable <- options[i]
+        output <- rbind(output,temp)
+      }
+      
+      output <- melt(output,id.vars = c("Fecha","Variable"),colnames(datos.semanal)[id])
+      
+      ggplot(output,
+                      aes(x = Fecha, y = value)) + 
+                 geom_line(aes(color=Variable)) +
+                 scale_y_continuous(limits = c(0,max(output$value)*1.2),
+                                    labels = scales::percent)+
+                 theme_minimal() + 
+                 theme(legend.title = element_blank(), 
+                       axis.text = element_text(size = 10))+
+                 geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed", 
+                            color = "#f44336", size=.6)
+
+    }
+    ,
+    datos.semanal
+  ))
+
+}
+
+datos.volumen <- function(datos=datos_flujo,inicio="2023-03-07",id=1,segmentacion=NA,
+                            final=Sys.Date()-1){
+    
+    diario <- resultados.test(inicio=as.Date(inicio),
+                            final = as.Date(final)-1, datos=datos, conversion = F)[[10]]
+     
+    nombres <- c("Inicio","Laptop","Datos","Info.academica","Info.pago","Completada")
+    
+    return(list(
+         ggplot(diario, aes(x = Fecha, y = .data[[nombres[id]]])) +
+             geom_bar(stat="identity", fill=ifelse(id==1, colores[1],colores[2]), width = ifelse(id==1,1,0.85) ) +
+             scale_y_continuous(limits = c(0, max(diario[,id+1]*1.2)) ) +
+             theme_minimal() +
+             theme(legend.title = element_blank(),
+                   axis.text = element_text(size = 10))+
+             geom_hline(yintercept=mean(diario[,id+1]), linetype="dashed", 
+                   color = "#f44336", size=.3) +
+             labs(x = "", y = "")
+         , diario))
+}
+
+```
+
+
+```{r}
+ventana.movil.analisis <- 1
+fecha.de.inicio <- "2023-09-10"
+#fecha.de.inicio <- Sys.Date()-90
+#datos_flujo$Es.Redes <- datos_flujo$Source=="rrss"
+#segmento <- Es.Redes
+#datos_flujo$Mostro.Servicios <- datos_flujo$MostrarReciboServicios=="Sí"
+#segmento <- "Mostro.Servicios"
+#datos_flujo$Es.fds <- as.numeric(as.POSIXlt(datos_flujo$Fecha)$wday)>=5
+#segmento <- "Es.fds"
+#datos_flujo$Es.diseño.antiguo <- datos_flujo$DiseñoSeleccionarLaptop=="v1" |  is.na(datos_flujo$DiseñoSeleccionarLaptop)
+#segmento <- "Es.diseño.antiguo"
+
+segmento <- NA
+ # datos_flujo$Es.convenio <- ifelse(datos_flujo$Source %in% c("prestamo","queoferton5201","queoferton9014","queoferton9842"),
+ #                                   FALSE,
+ #                                   TRUE)
+ # segmento <- "Es.convenio"
+
+# datos_flujo$Es.jorgeek <- ifelse(datos_flujo$Fuente == "jorgeek", T, F)
+# segmento <- "Es.jorgeek"
+```
+
+
+
+Resumen - Lineas {data-navmenu="Conversión"}
+==================
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Conversión total
+
+```{r}
+ggplotly(conversion.plot(id=4, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+### Conversión de seleccion de laptop
+
+```{r}
+ggplotly(conversion.plot(id=6, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Conversión de ingreso de datos personales
+
+```{r}
+ggplotly(conversion.plot(id=7, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+### Conversión de información académica
+
+```{r}
+ggplotly(conversion.plot(id=8, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Conversión de información financiera
+
+```{r}
+ggplotly(conversion.plot(id=9, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+### Conversión de confirmación final
+
+```{r}
+ggplotly(conversion.plot(id=10, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
+```
+
+
+
+
+Resumen - Barras {data-navmenu="Conversión"}
+==================
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Carga inicial
+
+```{r}
+ggplotly(datos.volumen(id=1, inicio = fecha.de.inicio)[[1]])
+```
+
+### Selección de laptop
+
+```{r}
+ggplotly(datos.volumen(id=2, inicio = fecha.de.inicio)[[1]])
+```
+
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Registro de datos
+
+```{r}
+ggplotly(datos.volumen(id=3, inicio = fecha.de.inicio)[[1]])
+```
+
+### Información académica
+
+```{r}
+ggplotly(datos.volumen(id=4, inicio = fecha.de.inicio)[[1]])
+```
+
+
+
+Column {data-width=100}
+-----------------------------------------------------------------------
+
+### Información de pago
+
+```{r}
+ggplotly(datos.volumen(id=5, inicio = fecha.de.inicio)[[1]])
+```
+
+### Solicitud completada
+
+```{r}
+ggplotly(datos.volumen(id=6, inicio = fecha.de.inicio)[[1]])
+```
+

@@ -1,0 +1,62 @@
+@font-face {
+  font-family: 'Asap';
+  src: url('fonts/Asap/Asap-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Asap';
+  src: url('fonts/Asap/Asap-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Asap';
+  src: url('fonts/Asap/Asap-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Asap';
+  src: url('fonts/Asap/Asap-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+}
+
+
+@font-face {
+  font-family: 'Baloo';
+  src: url('fonts/Baloo/Baloo-Regular.ttf') format('truetype');
+}
+
+.navbar{
+ background-color:#31359c;
+ border-color:#31359c;
+ font-family: 'Asap';
+ font-size: 11pt;
+ font-style: normal;
+}
+
+.navbar-brand{
+    font-size: 15pt;
+    font-style: bold;
+    font-family: 'Baloo';
+}
+
+.navbar-nav li a:hover, .navbar-nav > .active > a {
+  background-color: #474fd5 !important;
+  background-image: none !important;
+}
+
+.bgred{
+  background-color:#474fd5;
+}
+
+body{
+  background-color:#31359c;
+  font-family: 'Asap';
+}
+
