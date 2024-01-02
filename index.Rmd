@@ -153,45 +153,45 @@ fin_current_year <- as.Date(paste0(year(fecha_hoy),"-12-31"))
 ```{r}
 # Feriados 2023. Fuente: https://elcomercio.pe/respuestas/feriado-largo-por-navidad-2023-para-quienes-aplica-y-que-indica-el-peruano-del-feriado-feriados-2023-en-peru-tdpe-noticia/
 
-# feriados_peru <- as.Date(c(
-#     "2023-01-01", # Año Nuevo
-#     "2023-04-06", # Jueves Santo
-#     "2023-04-07", # Viernes Santo
-#     "2023-05-01", # Día del Trabajo
-#     "2023-06-29", # San Pedro y San Pablo
-#     "2023-07-23", # Día de la Fuerza Aérea
-#     "2023-07-28", # Fiestas Patrias
-#     "2023-07-29", # Fiestas Patrias
-#     "2023-08-06", # Batalla de Junín
-#     "2023-08-30", # Santa Rosa de Lima
-#     "2023-10-08", # Combate de Angamos
-#     "2023-11-01", # Todos los Santos
-#     "2023-12-08", # Inmaculada Concepción
-#     "2023-12-09", # Batalla de Ayacucho
-#     "2023-12-25" # Navidad
-# ))
+feriados_peru <- as.Date(c(
+    "2023-01-01", # Año Nuevo
+    "2023-04-06", # Jueves Santo
+    "2023-04-07", # Viernes Santo
+    "2023-05-01", # Día del Trabajo
+    "2023-06-29", # San Pedro y San Pablo
+    "2023-07-23", # Día de la Fuerza Aérea
+    "2023-07-28", # Fiestas Patrias
+    "2023-07-29", # Fiestas Patrias
+    "2023-08-06", # Batalla de Junín
+    "2023-08-30", # Santa Rosa de Lima
+    "2023-10-08", # Combate de Angamos
+    "2023-11-01", # Todos los Santos
+    "2023-12-08", # Inmaculada Concepción
+    "2023-12-09", # Batalla de Ayacucho
+    "2023-12-25" # Navidad
+))
 
 
 # Feriados 2024. Fuente: https://elcomercio.pe/respuestas/cuanto/feriados-en-el-2024-dias-no-laborables-y-festivos-del-ano-en-el-peru-cuantos-feriados-oficiales-habra-feriados-2024-tdpe-noticia/
 
-feriados_peru <- as.Date(c(
-  "2024-01-01", # Año Nuevo
-  "2024-03-28", # Jueves Santo
-  "2024-03-29", # Viernes Santo
-  "2024-05-01", # Día del Trabajo
-  "2024-06-07", # Batalla de Arica y Día de la Bandera
-  "2024-06-29", # San Pedro y San Pablo
-  "2024-07-23", # Día de la Fuerza Aérea
-  "2024-07-28", # Fiestas Patrias
-  "2024-07-29", # Fiestas Patrias
-  "2024-08-06", # Batalla de Junín
-  "2024-08-30", # Santa Rosa de Lima
-  "2024-10-08", # Combate de Angamos
-  "2024-11-01", # Día de Todos los Santos
-  "2024-12-08", # Inmaculada Concepción
-  "2024-12-09", # Batalla de Ayacucho
-  "2024-12-25" # Navidad
-))
+# feriados_peru <- as.Date(c(
+#   "2024-01-01", # Año Nuevo
+#   "2024-03-28", # Jueves Santo
+#   "2024-03-29", # Viernes Santo
+#   "2024-05-01", # Día del Trabajo
+#   "2024-06-07", # Batalla de Arica y Día de la Bandera
+#   "2024-06-29", # San Pedro y San Pablo
+#   "2024-07-23", # Día de la Fuerza Aérea
+#   "2024-07-28", # Fiestas Patrias
+#   "2024-07-29", # Fiestas Patrias
+#   "2024-08-06", # Batalla de Junín
+#   "2024-08-30", # Santa Rosa de Lima
+#   "2024-10-08", # Combate de Angamos
+#   "2024-11-01", # Día de Todos los Santos
+#   "2024-12-08", # Inmaculada Concepción
+#   "2024-12-09", # Batalla de Ayacucho
+#   "2024-12-25" # Navidad
+# ))
 ```
 
 ```{r crear calendario}
@@ -235,7 +235,7 @@ dias_habiles_eom <- length(
 
 
 ```{r}
-# contar la cantida de días de L a V de todo el mes que no sean feriados
+# contar la cantidad de días de L a V de todo el mes que no sean feriados
 dias_habiles_mes <- length(
   calendario[year(calendario) == year(fecha_hoy) & # dias en este año
     month(calendario) == month(fecha_hoy) & # dias en este mes
@@ -270,7 +270,7 @@ meta <- 200
 ```{r}
 firmas_resumen2 <- firmas_resumen %>%
   dplyr::select(Fecha.de.Firma, Convenios, Organico, Redes) %>%
-  filter(Fecha.de.Firma >= inicio_mes_hoy) %>% 
+  # filter(Fecha.de.Firma >= inicio_mes_hoy) %>% 
   mutate(
     firmas = Convenios + Organico + Redes,
     acumulado = ifelse(Fecha.de.Firma > fecha_hoy, NA, cumsum(firmas)),
@@ -463,24 +463,14 @@ theme_balde <- function() {
     # Format the legend
     # theme(legend.position = "top") +
 
-    # Format de caption
-    theme(plot.caption = element_text(hjust = 0.6, vjust= 0.1, size = 5.45)) +
-
     # Format title and axis labels
     theme(plot.title = element_blank()) +
-    theme(plot.subtitle = element_markdown(color = color_text, size = 11, hjust = 0.5, face = "bold", margin=margin(0,0,22,0))) +
     theme(axis.title.x = element_blank()) +
     theme(axis.title.y = element_blank()) +
     theme(axis.text = element_markdown()) +
     theme(axis.text.x = element_markdown(color = color_text, size = 9, hjust = 0.5)) +
     theme(axis.text.x.top = element_markdown(color = "#3b3b3a", family = "Arial Narrow", size=7.5)) +
     theme(axis.text.y = element_markdown(color = color_text, size = 9, hjust = 0.5)) +
-    # theme(strip.text = element_text(face = "bold")) +
-    theme(plot.tag = element_markdown(
-      family = "Arial Narrow", 
-      lineheight = 0.1, 
-      size = 8)) +
-    theme(plot.tag.position = c(0.10, 0.85)) +
 
     # Plot margins
     theme(plot.margin = unit(c(0.5, 0.4, 0.5, 0.65), "cm")) # top, right, bottom, left
@@ -599,7 +589,7 @@ Row
 
 ```{r con data de la tabla interesados}
 trafico_solicitudes_plot <- interesados_resumen %>%
-  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1 ) %>% 
+  filter(Fecha >= fecha_hoy - 30 & Fecha < fecha_hoy + 1 ) %>% 
   ggplot(aes(x = Fecha, y = interesados)) +
   geom_col(color = color_background, 
            fill = color_turquesa) +
@@ -615,7 +605,7 @@ ggplotly(trafico_solicitudes_plot)
 
 ```{r}
 solicitudes_totales_plot <- solicitudes_resumen %>%
-  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1 ) %>% 
+  filter(Fecha >= fecha_hoy - 30 & Fecha < fecha_hoy + 1 ) %>% 
   ggplot(aes(x = Fecha, 
              y = solicitudes)) +
   geom_hline(
@@ -641,7 +631,7 @@ Row
 
 ```{r}
 datos_frescos_plot <- datos_resumen %>%
-  filter(Fecha >= inicio_mes_hoy & Fecha < fecha_hoy + 1) %>% 
+  filter(Fecha >= fecha_hoy - 30 & Fecha < fecha_hoy + 1) %>% 
   ggplot(aes(x = Fecha, 
              y = datos_frescos)
          ) +
@@ -660,7 +650,7 @@ ggplotly(datos_frescos_plot)
 
 ```{r}
 firmas_totales_plot <- firmas_resumen2 %>%
-  filter(Fecha.de.Firma >= inicio_mes_hoy & Fecha.de.Firma <= fecha_hoy) %>% 
+  filter(Fecha.de.Firma >= fecha_hoy - 30 & Fecha.de.Firma <= fecha_hoy) %>% 
   ggplot(aes(x = Fecha.de.Firma, y = firmas)) +
   geom_hline(yintercept = meta_diaria_cifra, 
              color = color_rojo,
