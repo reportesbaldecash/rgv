@@ -153,45 +153,45 @@ fin_current_year <- as.Date(paste0(year(fecha_hoy),"-12-31"))
 ```{r}
 # Feriados 2023. Fuente: https://elcomercio.pe/respuestas/feriado-largo-por-navidad-2023-para-quienes-aplica-y-que-indica-el-peruano-del-feriado-feriados-2023-en-peru-tdpe-noticia/
 
-feriados_peru <- as.Date(c(
-    "2023-01-01", # Año Nuevo
-    "2023-04-06", # Jueves Santo
-    "2023-04-07", # Viernes Santo
-    "2023-05-01", # Día del Trabajo
-    "2023-06-29", # San Pedro y San Pablo
-    "2023-07-23", # Día de la Fuerza Aérea
-    "2023-07-28", # Fiestas Patrias
-    "2023-07-29", # Fiestas Patrias
-    "2023-08-06", # Batalla de Junín
-    "2023-08-30", # Santa Rosa de Lima
-    "2023-10-08", # Combate de Angamos
-    "2023-11-01", # Todos los Santos
-    "2023-12-08", # Inmaculada Concepción
-    "2023-12-09", # Batalla de Ayacucho
-    "2023-12-25" # Navidad
-))
+# feriados_peru <- as.Date(c(
+#     "2023-01-01", # Año Nuevo
+#     "2023-04-06", # Jueves Santo
+#     "2023-04-07", # Viernes Santo
+#     "2023-05-01", # Día del Trabajo
+#     "2023-06-29", # San Pedro y San Pablo
+#     "2023-07-23", # Día de la Fuerza Aérea
+#     "2023-07-28", # Fiestas Patrias
+#     "2023-07-29", # Fiestas Patrias
+#     "2023-08-06", # Batalla de Junín
+#     "2023-08-30", # Santa Rosa de Lima
+#     "2023-10-08", # Combate de Angamos
+#     "2023-11-01", # Todos los Santos
+#     "2023-12-08", # Inmaculada Concepción
+#     "2023-12-09", # Batalla de Ayacucho
+#     "2023-12-25" # Navidad
+# ))
 
 
 # Feriados 2024. Fuente: https://elcomercio.pe/respuestas/cuanto/feriados-en-el-2024-dias-no-laborables-y-festivos-del-ano-en-el-peru-cuantos-feriados-oficiales-habra-feriados-2024-tdpe-noticia/
 
-# feriados_peru <- as.Date(c(
-#   "2024-01-01", # Año Nuevo
-#   "2024-03-28", # Jueves Santo
-#   "2024-03-29", # Viernes Santo
-#   "2024-05-01", # Día del Trabajo
-#   "2024-06-07", # Batalla de Arica y Día de la Bandera
-#   "2024-06-29", # San Pedro y San Pablo
-#   "2024-07-23", # Día de la Fuerza Aérea
-#   "2024-07-28", # Fiestas Patrias
-#   "2024-07-29", # Fiestas Patrias 
-#   "2024-08-06", # Batalla de Junín 
-#   "2024-08-30", # Santa Rosa de Lima
-#   "2024-10-08", # Combate de Angamos
-#   "2024-11-01", # Día de Todos los Santos
-#   "2024-12-08", # Inmaculada Concepción
-#   "2024-12-09", # Batalla de Ayacucho
-#   "2024-12-25" # Navidad
-# ))
+feriados_peru <- as.Date(c(
+  "2024-01-01", # Año Nuevo
+  "2024-03-28", # Jueves Santo
+  "2024-03-29", # Viernes Santo
+  "2024-05-01", # Día del Trabajo
+  "2024-06-07", # Batalla de Arica y Día de la Bandera
+  "2024-06-29", # San Pedro y San Pablo
+  "2024-07-23", # Día de la Fuerza Aérea
+  "2024-07-28", # Fiestas Patrias
+  "2024-07-29", # Fiestas Patrias
+  "2024-08-06", # Batalla de Junín
+  "2024-08-30", # Santa Rosa de Lima
+  "2024-10-08", # Combate de Angamos
+  "2024-11-01", # Día de Todos los Santos
+  "2024-12-08", # Inmaculada Concepción
+  "2024-12-09", # Batalla de Ayacucho
+  "2024-12-25" # Navidad
+))
 ```
 
 ```{r crear calendario}
