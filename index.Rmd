@@ -268,6 +268,7 @@ meta <- 200
 ```
 
 ```{r}
+# Para la pestaña de totales
 firmas_resumen2 <- firmas_resumen %>%
   dplyr::select(Fecha.de.Firma, Convenios, Organico, Redes) %>%
   # filter(Fecha.de.Firma >= inicio_mes_hoy) %>% 
@@ -287,6 +288,28 @@ firmas_resumen2 <- firmas_resumen %>%
   )
 ```
 
+```{r}
+# para la pestaña de proyección
+firmas_resumen3 <- firmas_resumen %>%
+  dplyr::select(Fecha.de.Firma, Convenios, Organico, Redes) %>%
+  filter(Fecha.de.Firma >= inicio_mes_hoy) %>%
+  mutate(
+    firmas = Convenios + Organico + Redes,
+    acumulado = ifelse(Fecha.de.Firma > fecha_hoy, NA, cumsum(firmas)),
+    weekday = lubridate::wday(Fecha.de.Firma, week_start=1),
+    promedio = max(acumulado, na.rm = TRUE) / dias_habiles_mtd, 
+    proyeccion = ifelse(Fecha.de.Firma > fecha_hoy & weekday < 6, promedio, 0),
+    proyeccion_sobre_dias = meta/dias_totales_mes,
+    lineal = ifelse(Fecha.de.Firma == inicio_mes_hoy, meta/dias_totales_mes, cumsum(proyeccion_sobre_dias)), # 2023-12-22 sale 71
+    acumulado_con_proyeccion = 
+      case_when(
+        Fecha.de.Firma < fecha_hoy ~ NA_real_,
+        Fecha.de.Firma == fecha_hoy ~ max(acumulado, na.rm = TRUE)
+      )
+  )
+```
+
+
 ```{r acumulado con proyeccion}
 # Para el acumulado_con_proyeccion del día siguiente a fecha_today
 # firmas_resumen2[firmas_resumen2$Fecha.de.Firma == fecha_hoy + 1,]$acumulado_con_proyeccion <- 
@@ -297,24 +320,33 @@ for (i in (which(firmas_resumen2$Fecha.de.Firma > fecha_hoy)):(nrow(firmas_resum
   firmas_resumen2$acumulado_con_proyeccion[i] <- 
     max(firmas_resumen2$acumulado_con_proyeccion, na.rm = TRUE) + firmas_resumen2$proyeccion[i]
 }
+
+# Para el acumulado_con_proyeccion del día subsiguiente a fecha_today y lo sucesivo
+for (i in (which(firmas_resumen3$Fecha.de.Firma > fecha_hoy)):(nrow(firmas_resumen3))) {
+  firmas_resumen3$acumulado_con_proyeccion[i] <- 
+    max(firmas_resumen3$acumulado_con_proyeccion, na.rm = TRUE) + firmas_resumen3$proyeccion[i]
+}
 ```
 
 ```{r metricas, include=FALSE}
-firmas_cifra <- firmas_resumen2 %>%
+# firmas_cifra <- firmas_resumen2 %>%
+
+firmas_cifra <- firmas_resumen3 %>%
   filter(Fecha.de.Firma <= fecha_hoy & Fecha.de.Firma >= inicio_mes_hoy) %>%
   dplyr::select(firmas) %>% 
-  sum() %>% 
+  sum() %>%
   unlist()
 firmas_cifra
 ```
 
 ```{r, include=FALSE}
-proyeccion_lineal_cifra <- max(firmas_resumen2$acumulado_con_proyeccion, na.rm = TRUE)
+proyeccion_lineal_cifra <- max(firmas_resumen3$acumulado_con_proyeccion, na.rm = TRUE)
 proyeccion_lineal_cifra
 ```
 
 ```{r, include=FALSE}
-colocacion_diaria_cifra <- mean(firmas_resumen2$promedio)
+# colocacion_diaria_cifra <- mean(firmas_resumen2$promedio)
+colocacion_diaria_cifra <- mean(firmas_resumen3$promedio)
 colocacion_diaria_cifra
 ```
 
@@ -556,7 +588,7 @@ Row
 ### Proyección de firmas del mes {data-width=700}
 
 ```{r}
-proyeccion_firmas_plot <- firmas_resumen2 %>%
+proyeccion_firmas_plot <- firmas_resumen3 %>%
   filter(Fecha.de.Firma >= inicio_mes_hoy) %>%
   ggplot(aes(x = Fecha.de.Firma, y = acumulado), 
          color = color_indigo) +
