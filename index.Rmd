@@ -593,7 +593,7 @@ proyeccion_firmas_plot <- firmas_resumen3 %>%
   ggplot(aes(x = Fecha.de.Firma, y = acumulado), 
          color = color_indigo) +
   geom_line(color = color_turquesa) +
-  geom_line(data = firmas_resumen2 %>% filter(Fecha.de.Firma >= fecha_hoy),
+  geom_line(data = firmas_resumen3 %>% filter(Fecha.de.Firma >= fecha_hoy),
             aes(x = Fecha.de.Firma, 
                 y = acumulado_con_proyeccion),
             color = color_amarillo,
