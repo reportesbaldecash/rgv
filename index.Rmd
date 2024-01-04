@@ -313,7 +313,7 @@ firmas_resumen3 <- firmas_resumen %>%
     firmas = Convenios + Organico + Redes,
     acumulado = ifelse(Fecha.de.Firma > fecha_hoy, NA, cumsum(firmas)),
     weekday = lubridate::wday(Fecha.de.Firma, week_start=1),
-    promedio = max(acumulado, na.rm = TRUE) / dias_habiles_mtd, 
+    promedio = max(acumulado, na.rm = TRUE) / (dias_habiles_mtd+1), # edited 2024-01-04_09.35, TODO check se le sumó 1 para que promedie bien
     proyeccion = ifelse(Fecha.de.Firma > fecha_hoy & weekday < 6, promedio, 0),
     proyeccion_sobre_dias = meta/dias_totales_mes,
     lineal = ifelse(Fecha.de.Firma == inicio_mes_hoy, meta/dias_totales_mes, cumsum(proyeccion_sobre_dias)), # 2023-12-22 sale 71
