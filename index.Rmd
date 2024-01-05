@@ -107,35 +107,34 @@ aprobados <- spread(summaryBy(Dni ~ FechaAprobacion+Categoria.RGV,
 firmas <- spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
                             creditos[creditos$Fecha.de.Firma>='2022-01-01'&
                                     is.na(creditos$Fecha.de.Firma)==F&
-                                    !(creditos$Estatus.de.Solicitud %in% c('Falta pagar inicial','Cancelado')),],
+                                    !(creditos$Estatus.de.Solicitud %in% c('Cancelado')),], #2024-01-05_10.10: Quité 'Falta pagar inicial'
                             FUN = length.unique,keep.names = T),
                   Categoria.RGV,DNI)
+
+
+
+#########################
+# table(solicitudes[solicitudes$Fecha>='2022-07-01'&
+#                     solicitudes$Fecha<='2022-07-31',"Ciclo"])/length(solicitudes[solicitudes$Fecha>='2022-07-01'&
+#                                                                                          solicitudes$Fecha<='2022-07-31',"Ciclo"])
+# 
+# 
+# temporal <- spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
+#                              creditos[creditos$Fecha.de.Firma>='2022-01-01'&
+#                                 creditos$Fecha.de.Firma<='2022-12-31'&
+#                                         is.na(creditos$Fecha.de.Firma)==F&
+#                                         !(creditos$Estatus.de.Solicitud %in% c('Cancelado')),], #2024-01-05_10.10: Quité 'Falta pagar inicial'
+#                              FUN = length.unique,keep.names = T),
+#                    Categoria.RGV,DNI)
+# 
+# sum(temporal$Convenios,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+# sum(temporal$Organico,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+# sum(temporal$Redes,na.rm = T)/sum(temporal[,2:4],na.rm = T)
+# 
+# 
+# # write.xlsx(cronogramas[creditos$Estatus.de.Solicitud[match(cronogramas$Contrato,creditos$Solicitud)]=="Entregada",],
+# #            "cronogramas.5.7.23.xlsx")
 ```
-
-
-```{r, include=FALSE}
-table(solicitudes[solicitudes$Fecha>='2022-07-01'&
-                    solicitudes$Fecha<='2022-07-31',"Ciclo"])/length(solicitudes[solicitudes$Fecha>='2022-07-01'&
-                                                                                         solicitudes$Fecha<='2022-07-31',"Ciclo"])
-
-
-temporal <- spread(summaryBy(DNI ~ Fecha.de.Firma+Categoria.RGV,
-                             creditos[creditos$Fecha.de.Firma>='2022-01-01'&
-                                creditos$Fecha.de.Firma<='2022-12-31'&
-                                        is.na(creditos$Fecha.de.Firma)==F&
-                                        !(creditos$Estatus.de.Solicitud %in% c('Falta pagar inicial','Cancelado')),],
-                             FUN = length.unique,keep.names = T),
-                   Categoria.RGV,DNI)
-
-sum(temporal$Convenios,na.rm = T)/sum(temporal[,2:4],na.rm = T)
-sum(temporal$Organico,na.rm = T)/sum(temporal[,2:4],na.rm = T)
-sum(temporal$Redes,na.rm = T)/sum(temporal[,2:4],na.rm = T)
-
-
-# write.xlsx(cronogramas[creditos$Estatus.de.Solicitud[match(cronogramas$Contrato,creditos$Solicitud)]=="Entregada",],
-#            "cronogramas.5.7.23.xlsx")
-```
-
 
 
 ```{r dates}
