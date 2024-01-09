@@ -448,6 +448,25 @@ datos_resumen <- datos_resumen %>%
                             NA))
 ```
 
+```{r}
+# ratio de aprobados sobre total de solicitudes
+solicitudes_este_mes <- solicitudes_analisis %>% 
+  filter(
+      Fecha <= fecha_hoy & Fecha >= inicio_mes_hoy
+  ) %>% 
+  nrow()
+
+aprobados_este_mes <- solicitudes_analisis %>% 
+  filter(
+    Estado == "aprobado" &
+      Fecha <= fecha_hoy & Fecha >= inicio_mes_hoy
+) %>% 
+  nrow()
+
+ratio_aprobados_cifra <- aprobados_este_mes/solicitudes_este_mes
+```
+
+
 ```{r, include=FALSE}
 # completar_fechas <- function(data) {
 #   data_resumen <- data %>%
@@ -592,6 +611,16 @@ catch_up_diario_cifra_box <- valueBox(value = round(catch_up_diario_cifra, 2),
                            icon = "fa fa-bar-chart")
 
 catch_up_diario_cifra_box
+```
+
+
+### Ratio aprobados/solicitudes
+
+```{r}
+ratio_aprobados_cifra_box <- valueBox(round(ratio_aprobados_cifra, 2), 
+                           icon = "fa-check")
+
+ratio_aprobados_cifra_box
 ```
 
 
