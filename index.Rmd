@@ -279,7 +279,7 @@ firmas_resumen <- firmas_resumen %>%
 ```
 
 ```{r}
-meta <- 200
+meta <- 250
 ```
 
 ```{r}
