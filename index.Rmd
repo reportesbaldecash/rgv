@@ -33,7 +33,7 @@ solicitudes_analisis$FechaFirmaAirtable <- as.Date(solicitudes_analisis$FechaFir
 
 #leads <- read.csv('/Users/baldecash/My Drive/BaldeCash/Data/Reportes Diarios/Landing Page-General.csv')
 
-leads <- read.csv('G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Data/Reportes Diarios/Landing Page-General.csv') #my wd
+leads <- read.csv('Landing Page-General.csv') #my wd
 
 datos_flujo$Fecha <- as.Date(datos_flujo$Fecha)
 datos_flujo$Mes <- format(datos_flujo$Fecha,'%Y%m')
