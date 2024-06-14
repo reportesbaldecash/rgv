@@ -15,16 +15,38 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 
 ```{r RGV, include = FALSE}
-rm(list = ls())
-#setwd('/Users/baldecash/My Drive/BaldeCash/Producto/Bases de datos')
+# rm(list = ls())
+# #setwd('/Users/baldecash/My Drive/BaldeCash/Producto/Bases de datos')
 setwd('G:/.shortcut-targets-by-id/1QHYGneeTPBjKLrTjL80_LCO_ZhnFm_MO/BaldeCash/Producto/Bases de datos')
-current_date <- Sys.Date()
-source('Cargar_datos.R')
+# current_date <- Sys.Date()
+source('Cargar_datos2.R')
 
-solicitudes$Categoria.RGV <- ifelse(!(solicitudes$Source %in% c('solicitud','rrss')),"Convenios",ifelse(solicitudes$Redes=="SÍ","Redes","Organico"))
+datos_flujo <- cargar_datos_flujo()
+
+solicitudes_backup <- solicitudes
+
+solicitudes <- solicitudes %>% 
+    mutate(
+        Categoria.RGV = ifelse(Source %not in% c('solicitud', 'rrss'), 
+                               'Convenios',
+                               ifelse(Redes == 'SÍ',
+                                      'Redes',
+                                      'Organico'))
+    )
+
 creditos$Categoria.RGV <- solicitudes$Categoria.RGV[match(creditos$Solicitud,solicitudes$Id)]
-solicitudes_analisis <-solicitudes[solicitudes$Fecha>='2022-01-01',]
-solicitudes_analisis$Id <- as.numeric(solicitudes_analisis$Id)
+
+solicitudes_analisis <- solicitudes %>% 
+    filter(
+        Fecha >= '2022-01-01',
+        (!str_detect(Motivos_prerechazo, "Duplicado") | is.na(Motivos_prerechazo))
+    ) %>%
+    mutate(Id = as.numeric(Id))
+
+# solicitudes$Categoria.RGV <- ifelse(!(solicitudes$Source %in% c('solicitud','rrss')),"Convenios",ifelse(solicitudes$Redes=="SÍ","Redes","Organico"))
+# creditos$Categoria.RGV <- solicitudes$Categoria.RGV[match(creditos$Solicitud,solicitudes$Id)]
+# solicitudes_analisis <-solicitudes[solicitudes$Fecha>='2022-01-01',]
+# solicitudes_analisis$Id <- as.numeric(solicitudes_analisis$Id)
 
 creditos$Firmado <- !(creditos$Estatus.de.Solicitud[match(creditos$Solicitud,solicitudes_analisis$Id)] %in% c('Cancelado','Falta firmar','Falta pagar inicial',NA))
 solicitudes_analisis$Firmado <- creditos$Firmado[match(solicitudes_analisis$Id,creditos$Solicitud)]
@@ -279,7 +301,7 @@ firmas_resumen <- firmas_resumen %>%
 ```
 
 ```{r}
-meta <- 250
+meta <- 450
 ```
 
 ```{r}
@@ -390,7 +412,7 @@ solicitudes_resumen <- solicitudes_resumen %>%
 solicitudes_resumen[is.na(solicitudes_resumen)] <- 0
 
 solicitudes_resumen <- solicitudes_resumen %>% 
-  slice(1:nrow(.) - 1) # eliminar la última fila. Es necesario?
+  slice(1:nrow(.)) # eliminar la última fila. Es necesario?
 
 solicitudes_resumen <- solicitudes_resumen %>%
   mutate(
@@ -697,6 +719,11 @@ solicitudes_totales_plot <- solicitudes_resumen %>%
 
 
 ggplotly(solicitudes_totales_plot)
+
+
+solicitudes_analisis %>% 
+    filter(Fecha == as_date("2024-05-16")) %>% 
+    View()
 ```
 
 
@@ -798,22 +825,22 @@ library(matrixStats)
 ### Conversion
 
 resultados.test <- function(test="B",convenio=NA,conversion=T,inicio="2023-03-01",final=Sys.Date()-1,datos=datos_flujo) {
-    
+
   datos_flujo_analisis <- datos[is.na(datos$UltimaPaginaCompletada)==F & is.na(datos$ModoInicio)==F,]
   #datos_flujo_analisis <- datos_flujo_analisis[!(datos_flujo_analisis$DNI %in% dnis_prueba),]
   datos_flujo_analisis$Fecha_2 <- as.Date(datos_flujo_analisis$Fecha)
   datos_flujo_analisis <- datos_flujo_analisis[datos_flujo_analisis$ModoInicio==ifelse(test=="B","startedWithPrestamos",
                                                                                  ifelse(test=="A","startedWithDatosPersonales","")),]
-  
+
   if (is.na(convenio)) {
-    
+
   } else {
     datos_flujo_analisis <- datos_flujo_analisis[datos_flujo_analisis$TipoCliente==convenio,]
   }
-  
-  
+
+
   resultados <- as.data.frame(matrix(NA,nrow = length(as.Date(inicio):as.Date(final)),ncol = 7))
-  
+
   if (test=="A") {
     colnames(resultados) <- c("Fecha","Inicio","Datos","Laptop","Info.academica","Info.pago","Completada")
     opciones <- c("carga inicial","datos personales","laptop seleccionada","información académica","forma de pago","confirmar solicitud")
@@ -821,20 +848,20 @@ resultados.test <- function(test="B",convenio=NA,conversion=T,inicio="2023-03-01
     colnames(resultados) <- c("Fecha","Inicio","Laptop","Datos","Info.academica","Info.pago","Completada")
     opciones <- c("carga inicial","laptop seleccionada","datos personales","información académica","forma de pago","confirmar solicitud")
   }
-  
+
   resultados$Fecha <- as.Date(as.Date(inicio):as.Date(final))
-  
+
   for (i in 1:6) {
     for (j in 1:nrow(resultados)) {
       resultados[j,i+1] <- nrow(datos_flujo_analisis[datos_flujo_analisis$UltimaPaginaCompletada==opciones[i]&
                                                        datos_flujo_analisis$Fecha_2==resultados$Fecha[j],])
     }
   }
-  
+
   for (i in 2:6) {
     resultados[,i] <- rowSums(resultados[,i:7])
   }
-  
+
   lista.resultado <- list(nrow(datos_flujo_analisis[datos_flujo_analisis$Fecha_2>=as.Date(inicio)&datos_flujo_analisis$Fecha_2<=as.Date(final),]),
                           sum(resultados$Completada,na.rm = T),
                           sum(resultados$Completada,na.rm = T)/sum(resultados[,2],na.rm = T),
@@ -845,14 +872,14 @@ resultados.test <- function(test="B",convenio=NA,conversion=T,inicio="2023-03-01
                           sum(resultados[,6],na.rm = T)/sum(resultados[,5],na.rm = T),
                           sum(resultados[,7],na.rm = T)/sum(resultados[,6],na.rm = T),
                           NA)
-  
+
   names(lista.resultado) <- c("Registros","Solicitudes","Conversión.total","Datos.por.solicitud",
                               "Conversion.1.laptop","Conversion.2.datos","Conversion.3.info.academica",
                               "Conversion.4.info.financiera","Conversion.5.ultima pagina",
                               "Tabla.diaria")
-  
+
   resultados <- resultados[is.na(resultados[,2])==F,]
-  
+
   if (conversion) {
     for (i in 7:3) {
       resultados[,i] <- resultados[,i]/resultados[,i-1]
@@ -860,16 +887,16 @@ resultados.test <- function(test="B",convenio=NA,conversion=T,inicio="2023-03-01
     resultados[,2] <- 1
     resultados$Total <- rowProds(as.matrix(resultados[,2:7]))
   }
-  
-  
+
+
   for (j in 1:nrow(resultados)) {
     resultados[j,"Firmas"] <- sum(solicitudes$Estado[match(datos_flujo_analisis[datos_flujo_analisis$UltimaPaginaCompletada==opciones[i]&
                                                                                   datos_flujo_analisis$Fecha_2==resultados$Fecha[j],"SolicitudId"],solicitudes$Id)]=="aprobado",na.rm = T)
   }
-  
-  
+
+
   lista.resultado[[10]] <- resultados
-  
+
   return(lista.resultado)
 }
 
@@ -893,15 +920,15 @@ conversion.semanal <- function(datos=datos_flujo,inicio="2023-03-01",final=Sys.D
     datos.semanal$Conversion.4.info.financiera[i] <- temp[[8]]
     datos.semanal$Conversion.5.ultima.pagina[i] <- temp[[9]]
   }
-  
+
   return(datos.semanal)
 }
 
 conversion.movil <- function(datos=datos_flujo,inicio="2023-03-01",ventana.movil=7,final=Sys.Date()-1) {
-    
+
   datos.movil <- as.data.frame(matrix(NA,nrow=length(seq(as.Date(inicio),final,by="days")),
                                         ncol=10))
-  
+
   colnames(datos.movil) <- c("Fecha","Registros","Solicitudes","Conversion.total","Datos.por.solicitud",
                                "Conversion.1.laptop","Conversion.2.datos","Conversion.3.info.academica",
                              "Conversion.4.info.financiera","Conversion.5.ultima.pagina")
@@ -919,31 +946,31 @@ conversion.movil <- function(datos=datos_flujo,inicio="2023-03-01",ventana.movil
     datos.movil$Conversion.4.info.financiera[i] <- temp[[8]]
     datos.movil$Conversion.5.ultima.pagina[i] <- temp[[9]]
   }
-  
+
   return(datos.movil)
 }
 
 conversion.plot <- function(datos=datos_flujo,inicio="2023-03-07",id=4,segmentacion=NA,ventana.movil=7,
                             final=Sys.Date()-1, conversion=T) {
-  
+
   datos.semanal <- conversion.movil(datos=datos,inicio=as.Date(inicio),
                                     ventana.movil=ventana.movil,final = final)
-  
+
   return(list(
     if (is.na(segmentacion)) {
-      ggplot(datos.semanal, aes(x = Fecha, y = .data[[colnames(datos.semanal)[id]]])) + 
+      ggplot(datos.semanal, aes(x = Fecha, y = .data[[colnames(datos.semanal)[id]]])) +
         geom_line(color=ifelse(id==4,colores[1],colores[2]),size = ifelse(id==4,1,0.75)) +
         scale_y_continuous(limits = c(0,max(datos.semanal[,id])*1.2),
                            labels = scales::percent)+
-        theme_minimal() + 
-        theme(legend.title = element_blank(), 
+        theme_minimal() +
+        theme(legend.title = element_blank(),
               axis.text = element_text(size = 10))+
-        geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed", 
+        geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed",
                    color = "#f44336", size=.3) +
         labs(x = "", y = "")
     } else {
       options <- unique(datos[,segmentacion])
-      
+
       output <- conversion.movil(datos=datos[datos[,match(segmentacion,colnames(datos))]==options[1],],inicio=as.Date(inicio))
       output$Variable <- options[1]
       for (i in 2:length(options)) {
@@ -951,18 +978,18 @@ conversion.plot <- function(datos=datos_flujo,inicio="2023-03-07",id=4,segmentac
         temp$Variable <- options[i]
         output <- rbind(output,temp)
       }
-      
+
       output <- melt(output,id.vars = c("Fecha","Variable"),colnames(datos.semanal)[id])
-      
+
       ggplot(output,
-                      aes(x = Fecha, y = value)) + 
+                      aes(x = Fecha, y = value)) +
                  geom_line(aes(color=Variable)) +
                  scale_y_continuous(limits = c(0,max(output$value)*1.2),
                                     labels = scales::percent)+
-                 theme_minimal() + 
-                 theme(legend.title = element_blank(), 
+                 theme_minimal() +
+                 theme(legend.title = element_blank(),
                        axis.text = element_text(size = 10))+
-                 geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed", 
+                 geom_hline(yintercept=mean(datos.semanal[,id]), linetype="dashed",
                             color = "#f44336", size=.6)
 
     }
@@ -974,12 +1001,12 @@ conversion.plot <- function(datos=datos_flujo,inicio="2023-03-07",id=4,segmentac
 
 datos.volumen <- function(datos=datos_flujo,inicio="2023-03-07",id=1,segmentacion=NA,
                             final=Sys.Date()-1){
-    
+
     diario <- resultados.test(inicio=as.Date(inicio),
                             final = as.Date(final)-1, datos=datos, conversion = F)[[10]]
-     
+
     nombres <- c("Inicio","Laptop","Datos","Info.academica","Info.pago","Completada")
-    
+
     return(list(
          ggplot(diario, aes(x = Fecha, y = .data[[nombres[id]]])) +
              geom_bar(stat="identity", fill=ifelse(id==1, colores[1],colores[2]), width = ifelse(id==1,1,0.85) ) +
@@ -987,7 +1014,7 @@ datos.volumen <- function(datos=datos_flujo,inicio="2023-03-07",id=1,segmentacio
              theme_minimal() +
              theme(legend.title = element_blank(),
                    axis.text = element_text(size = 10))+
-             geom_hline(yintercept=mean(diario[,id+1]), linetype="dashed", 
+             geom_hline(yintercept=mean(diario[,id+1]), linetype="dashed",
                    color = "#f44336", size=.3) +
              labs(x = "", y = "")
          , diario))
@@ -1021,105 +1048,105 @@ segmento <- NA
 
 
 
-Resumen - Lineas {data-navmenu="Conversión"}
-==================
+<!-- Resumen - Lineas {data-navmenu="Conversión"} -->
+<!-- ================== -->
 
-Column {data-width=100}
------------------------------------------------------------------------
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
 
-### Conversión total
+<!-- ### Conversión total -->
 
-```{r}
-ggplotly(conversion.plot(id=4, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=4, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
-### Conversión de seleccion de laptop
+<!-- ### Conversión de seleccion de laptop -->
 
-```{r}
-ggplotly(conversion.plot(id=6, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=6, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
-Column {data-width=100}
------------------------------------------------------------------------
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
 
-### Conversión de ingreso de datos personales
+<!-- ### Conversión de ingreso de datos personales -->
 
-```{r}
-ggplotly(conversion.plot(id=7, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=7, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
-### Conversión de información académica
+<!-- ### Conversión de información académica -->
 
-```{r}
-ggplotly(conversion.plot(id=8, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=8, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
-Column {data-width=100}
------------------------------------------------------------------------
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
 
-### Conversión de información financiera
+<!-- ### Conversión de información financiera -->
 
-```{r}
-ggplotly(conversion.plot(id=9, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=9, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
-### Conversión de confirmación final
+<!-- ### Conversión de confirmación final -->
 
-```{r}
-ggplotly(conversion.plot(id=10, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]])
-```
-
-
-
-
-Resumen - Barras {data-navmenu="Conversión"}
-==================
-
-Column {data-width=100}
------------------------------------------------------------------------
-
-### Carga inicial
-
-```{r}
-ggplotly(datos.volumen(id=1, inicio = fecha.de.inicio)[[1]])
-```
-
-### Selección de laptop
-
-```{r}
-ggplotly(datos.volumen(id=2, inicio = fecha.de.inicio)[[1]])
-```
-
-
-Column {data-width=100}
------------------------------------------------------------------------
-
-### Registro de datos
-
-```{r}
-ggplotly(datos.volumen(id=3, inicio = fecha.de.inicio)[[1]])
-```
-
-### Información académica
-
-```{r}
-ggplotly(datos.volumen(id=4, inicio = fecha.de.inicio)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(conversion.plot(id=10, inicio = fecha.de.inicio,ventana.movil = ventana.movil.analisis,segmentacion = segmento)[[1]]) -->
+<!-- ``` -->
 
 
 
-Column {data-width=100}
------------------------------------------------------------------------
 
-### Información de pago
+<!-- Resumen - Barras {data-navmenu="Conversión"} -->
+<!-- ================== -->
 
-```{r}
-ggplotly(datos.volumen(id=5, inicio = fecha.de.inicio)[[1]])
-```
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
 
-### Solicitud completada
+<!-- ### Carga inicial -->
 
-```{r}
-ggplotly(datos.volumen(id=6, inicio = fecha.de.inicio)[[1]])
-```
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=1, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
+
+<!-- ### Selección de laptop -->
+
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=2, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
+
+
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
+
+<!-- ### Registro de datos -->
+
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=3, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
+
+<!-- ### Información académica -->
+
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=4, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
+
+
+
+<!-- Column {data-width=100} -->
+<!-- ----------------------------------------------------------------------- -->
+
+<!-- ### Información de pago -->
+
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=5, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
+
+<!-- ### Solicitud completada -->
+
+<!-- ```{r} -->
+<!-- ggplotly(datos.volumen(id=6, inicio = fecha.de.inicio)[[1]]) -->
+<!-- ``` -->
 
